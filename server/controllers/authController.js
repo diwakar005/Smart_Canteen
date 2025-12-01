@@ -1,4 +1,5 @@
-require('../mockData');
+const User = require('../models/User');
+const jwt = require('jsonwebtoken'); // Assuming you want to use real JWT later, but for now keeping mock token or simple logic
 
 exports.login = async (req, res) => {
     const { identifier } = req.body;
@@ -8,7 +9,7 @@ exports.login = async (req, res) => {
     }
 
     try {
-        let user = global.mockUsers.find(u => u.identifier === identifier);
+        let user = await User.findOne({ identifier });
 
         if (!user) {
             // Auto-signup logic
@@ -29,17 +30,15 @@ exports.login = async (req, res) => {
             if (identifier === 'A1') canteen = 'GF';
             if (identifier === 'A2') canteen = '1st F';
 
-            user = {
-                _id: Date.now().toString(),
+            user = await User.create({
                 identifier,
                 name: role === 'teacher' ? `Teacher ${identifier}` : `Student ${identifier}`,
                 role,
-                canteen, // Assign canteen
+                canteen: canteen || undefined, // Only for admins
                 department: 'CS', // Default
                 building: '',
                 classroom: '101'
-            };
-            global.mockUsers.push(user);
+            });
         }
 
         res.json({
@@ -47,11 +46,11 @@ exports.login = async (req, res) => {
             identifier: user.identifier,
             name: user.name,
             role: user.role,
-            token: 'mock-jwt-token',
+            token: 'mock-jwt-token', // You should implement real JWT here for production
             department: user.department,
             building: user.building,
             classroom: user.classroom,
-            canteen: user.canteen // Return canteen
+            canteen: user.canteen
         });
     } catch (error) {
         console.error(error);

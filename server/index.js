@@ -13,10 +13,11 @@ app.use(cors());
 app.use(express.json());
 
 // Database Connection
-// mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen')
-//     .then(() => console.log('MongoDB Connected'))
-//     .catch(err => console.error('MongoDB Connection Error:', err));
-console.log('Using In-Memory Mock Database');
+// Database Connection
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen')
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => console.error('MongoDB Connection Error:', err));
+// console.log('Using In-Memory Mock Database');
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
