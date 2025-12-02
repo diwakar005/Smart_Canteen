@@ -20,7 +20,7 @@ const Menu = () => {
 
     const [notifications, setNotifications] = useState([]);
 
-    const categories = ['All', 'South Indian', 'Snacks', 'Lunch', 'Beverages', 'Chinese'];
+    const categories = ['All', 'Fast Food', 'Chinese', 'Lunch', 'Snacks', 'Beverages', 'Desserts', 'South Indian'];
 
     useEffect(() => {
         fetchProducts();
