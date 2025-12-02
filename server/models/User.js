@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   department: { type: String },
   building: { type: String },
   classroom: { type: String },
+  canteen: { type: String }, // For admins
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);
