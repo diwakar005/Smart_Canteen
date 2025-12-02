@@ -12,12 +12,29 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Database Connection
-// Database Connection
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen')
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
-// console.log('Using In-Memory Mock Database');
+// Database Connection Logic for Serverless
+let isConnected = false;
+
+const connectDB = async () => {
+    if (isConnected) {
+        return;
+    }
+
+    try {
+        const db = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen');
+        isConnected = db.connections[0].readyState;
+        console.log('MongoDB Connected');
+    } catch (err) {
+        console.error('MongoDB Connection Error:', err);
+        // Don't exit process in serverless, just log
+    }
+};
+
+// Middleware to ensure DB is connected before handling requests
+app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
