@@ -21,19 +21,25 @@ const connectDB = async () => {
     }
 
     try {
-        const db = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen');
+        const db = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen', {
+            serverSelectionTimeoutMS: 5000 // Fail after 5 seconds if cannot connect
+        });
         isConnected = db.connections[0].readyState;
         console.log('MongoDB Connected');
     } catch (err) {
         console.error('MongoDB Connection Error:', err);
-        // Don't exit process in serverless, just log
+        throw err; // Propagate error so we don't handle request
     }
 };
 
 // Middleware to ensure DB is connected before handling requests
 app.use(async (req, res, next) => {
-    await connectDB();
-    next();
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        res.status(500).json({ message: `Database Connection Failed: ${error.message}` });
+    }
 });
 
 // Routes
