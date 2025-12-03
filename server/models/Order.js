@@ -12,7 +12,8 @@ const orderSchema = new mongoose.Schema({
     deliveryLocation: {
         department: { type: String, required: true },
         building: { type: String, required: true },
-        classroom: { type: String, required: true }
+        classroom: { type: String, required: true },
+        contactNo: { type: String }
     },
     status: { type: String, enum: ['pending', 'preparing', 'ready', 'delivered'], default: 'pending' },
 }, { timestamps: true });
