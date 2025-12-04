@@ -82,7 +82,7 @@ const Cart = () => {
                 alert(`Payment Verified! Order placed successfully.`);
 
                 clearCart();
-                navigate('/order-success');
+                navigate('/orders');
             } catch (error) {
                 console.error("Order failed", error);
                 alert("Failed to place order. Please try again.");
@@ -364,9 +364,9 @@ const Cart = () => {
 
                         <div className="bg-gray-100 p-4 rounded-xl mb-6 inline-block">
                             <img
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=smartcanteen@upi&pn=SmartCanteen&am=${cartTotal}`}
+                                src="/upi-qr.png"
                                 alt="Payment QR Code"
-                                className="w-48 h-48 mix-blend-multiply"
+                                className="w-48 h-48 object-contain"
                             />
                         </div>
 
