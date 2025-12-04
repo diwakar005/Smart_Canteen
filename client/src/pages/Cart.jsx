@@ -45,10 +45,7 @@ const Cart = () => {
     };
 
     const confirmPayment = async () => {
-        if (!utr || utr.length < 12) {
-            setPaymentError('Please enter a valid 12-digit UPI Reference ID (UTR)');
-            return;
-        }
+        // No UTR validation needed anymore
 
         setLoading(true);
         setPaymentError('');
@@ -71,7 +68,7 @@ const Cart = () => {
                     deliveryLocation: location,
                     orderType,
                     canteen,
-                    transactionId: utr // Send UTR to backend
+                    transactionId: 'QR_PAYMENT' // Auto-confirmed by user
                 };
 
                 await axios.post('/api/orders', orderData, {
@@ -371,23 +368,6 @@ const Cart = () => {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="text-left">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Enter UPI Reference ID (UTR)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={utr}
-                                    onChange={(e) => setUtr(e.target.value.replace(/\D/g, ''))}
-                                    placeholder="e.g. 321456987012"
-                                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
-                                    maxLength={12}
-                                />
-                                {paymentError && (
-                                    <p className="text-red-500 text-xs mt-1">{paymentError}</p>
-                                )}
-                            </div>
-
                             <button
                                 onClick={confirmPayment}
                                 disabled={loading}
@@ -396,10 +376,10 @@ const Cart = () => {
                                 {loading ? (
                                     <>
                                         <Loader2 className="w-5 h-5 animate-spin" />
-                                        Verifying...
+                                        Processing...
                                     </>
                                 ) : (
-                                    'Verify Payment & Place Order'
+                                    'I have Paid'
                                 )}
                             </button>
 
