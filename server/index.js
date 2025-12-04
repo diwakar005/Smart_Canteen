@@ -12,24 +12,39 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Database Connection Logic for Serverless
-let isConnected = false;
+// Database Connection Logic (Robust for Serverless & Local)
+let cached = global.mongoose;
+
+if (!cached) {
+    cached = global.mongoose = { conn: null, promise: null };
+}
 
 const connectDB = async () => {
-    if (isConnected) {
-        return;
+    if (cached.conn) {
+        return cached.conn;
+    }
+
+    if (!cached.promise) {
+        const opts = {
+            serverSelectionTimeoutMS: 5000,
+            bufferCommands: false // Disable buffering to fail fast
+        };
+
+        cached.promise = mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen', opts).then((mongoose) => {
+            console.log('MongoDB Connected');
+            return mongoose;
+        });
     }
 
     try {
-        const db = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smartcanteen', {
-            serverSelectionTimeoutMS: 5000 // Fail after 5 seconds if cannot connect
-        });
-        isConnected = db.connections[0].readyState;
-        console.log('MongoDB Connected');
-    } catch (err) {
-        console.error('MongoDB Connection Error:', err);
-        throw err; // Propagate error so we don't handle request
+        cached.conn = await cached.promise;
+    } catch (e) {
+        cached.promise = null;
+        console.error('MongoDB Connection Error:', e);
+        throw e;
     }
+
+    return cached.conn;
 };
 
 // Middleware to ensure DB is connected before handling requests
@@ -52,8 +67,12 @@ app.get('/', (req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
-        console.log(`Server running on port ${PORT}`);
+    connectDB().then(() => {
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    }).catch(err => {
+        console.error("Failed to connect to DB locally:", err);
     });
 }
 
