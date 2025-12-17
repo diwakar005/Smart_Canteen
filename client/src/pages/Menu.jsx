@@ -22,12 +22,73 @@ const Menu = () => {
 
     const categories = ['All', 'Fast Food', 'Chinese', 'Lunch', 'Snacks', 'Beverages', 'Desserts', 'South Indian'];
 
+    const [activeOrder, setActiveOrder] = useState(null);
+    const [timeLeft, setTimeLeft] = useState(null);
+
     useEffect(() => {
         fetchProducts();
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 5000);
+        fetchActiveOrder();
+        const interval = setInterval(() => {
+            fetchNotifications();
+            fetchActiveOrder();
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        if (!activeOrder || !activeOrder.estimatedTime) return;
+
+        const calculateTimeLeft = () => {
+            const minutes = parseInt(activeOrder.estimatedTime);
+            if (isNaN(minutes)) return activeOrder.estimatedTime;
+
+            const startTime = new Date(activeOrder.updatedAt).getTime();
+            const endTime = startTime + minutes * 60 * 1000;
+            const now = Date.now();
+            const diff = endTime - now;
+
+            if (diff <= 0) return "Waiting time over";
+
+            const m = Math.floor((diff / 1000 / 60) % 60);
+            const s = Math.floor((diff / 1000) % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        };
+
+        setTimeLeft(calculateTimeLeft()); // Initial call
+
+        const timer = setInterval(() => {
+            setTimeLeft(calculateTimeLeft());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [activeOrder]);
+
+    const fetchActiveOrder = async () => {
+        try {
+            const res = await axios.get('/api/orders/my-orders', {
+                headers: { 'x-user-id': user._id }
+            });
+
+            if (res.data.length === 0) {
+                setActiveOrder(null);
+                return;
+            }
+
+            // Only consider the latest order
+            const latestOrder = res.data[0];
+
+            // If the latest order is active (accepted/preparing/ready), show it.
+            // If it's pending, rejected, or delivered, show nothing (activeOrder = null).
+            if (['accepted', 'preparing', 'ready'].includes(latestOrder.status)) {
+                setActiveOrder(latestOrder);
+            } else {
+                setActiveOrder(null);
+            }
+        } catch (error) {
+            console.error("Error fetching active order", error);
+        }
+    };
 
     const fetchNotifications = async () => {
         try {
@@ -100,6 +161,33 @@ const Menu = () => {
                         {/* Actions */}
                         <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                             <div className="flex items-center gap-2 mr-2">
+                                {activeOrder && (
+                                    activeOrder.status === 'ready' ? (
+                                        activeOrder.orderType === 'pre-order' && activeOrder.estimatedTime ? (
+                                            <div className={`hidden md:flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border animate-pulse ${timeLeft === "Waiting time over" ? "bg-red-50 text-red-600 border-red-100" : "bg-purple-50 text-purple-600 border-purple-100"}`}>
+                                                <span className="mr-1">🛵</span>
+                                                <span>{timeLeft === "Waiting time over" ? "Arrived?" : `Arriving in: ${timeLeft}`}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="hidden md:flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border bg-green-50 text-green-600 border-green-100 animate-pulse">
+                                                <span className="mr-1">✅</span>
+                                                <span>Order Ready!</span>
+                                            </div>
+                                        )
+                                    ) : activeOrder.status === 'accepted' ? (
+                                        activeOrder.orderType === 'dine-in' && activeOrder.estimatedTime ? (
+                                            <div className={`hidden md:flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border animate-pulse ${timeLeft === "Waiting time over" ? "bg-red-50 text-red-600 border-red-100" : "bg-blue-50 text-blue-600 border-blue-100"}`}>
+                                                <span className="mr-1">⏱️</span>
+                                                <span>{timeLeft === "Waiting time over" ? timeLeft : `Preparing: ${timeLeft}`}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="hidden md:flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border bg-blue-50 text-blue-600 border-blue-100">
+                                                <span className="mr-1">👍</span>
+                                                <span>Order Accepted</span>
+                                            </div>
+                                        )
+                                    ) : null
+                                )}
                                 <span className="text-sm font-medium text-gray-600 hidden sm:block">Hi, {user?.name.split(' ')[0]}</span>
                                 <div className="w-8 h-8 bg-gradient-to-br from-orange-100 to-orange-200 rounded-full flex items-center justify-center text-orange-600 font-bold text-xs border border-orange-200">
                                     {user?.name.charAt(0)}
@@ -250,15 +338,23 @@ const Menu = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {filteredProducts.map(product => (
                                     <div key={product._id} className="group bg-white rounded-2xl p-4 border border-gray-100 shadow-sm hover:shadow-xl hover:border-orange-100 transition-all duration-300 transform hover:-translate-y-1">
-                                        <div className="relative mb-4 overflow-hidden rounded-xl">
+                                        <div className="relative mb-4 overflow-hidden rounded-xl h-48 bg-gray-100">
                                             <div className="absolute top-2 left-2 z-10 bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] font-bold px-2 py-1 rounded-md shadow-sm">
                                                 {product.category.toUpperCase()}
                                             </div>
                                             <img
                                                 src={product.image}
                                                 alt={product.name}
-                                                className="w-full h-48 object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                                className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                                                loading="lazy"
+                                                onLoad={(e) => e.target.classList.remove('opacity-0')}
+                                                onError={(e) => {
+                                                    e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=60'; // Fallback
+                                                }}
                                             />
+                                            {/* Placeholder/Loading Skeleton */}
+                                            <div className="absolute inset-0 bg-gray-200 animate-pulse -z-10"></div>
+
                                             <button
                                                 onClick={() => addToCart({ ...product, canteen: selectedCanteen })}
                                                 className="absolute bottom-2 right-2 bg-white text-orange-600 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 hover:bg-orange-600 hover:text-white"

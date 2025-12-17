@@ -25,9 +25,23 @@ const AdminDashboard = () => {
         return () => clearInterval(interval);
     }, []);
 
-    const updateStatus = async (orderId, status) => {
+    const updateStatus = async (orderId, status, orderType) => {
         try {
-            await axios.put(`/api/orders/${orderId}/status`, { status });
+            let estimatedTime = null;
+
+            // For Dine-in: Prompt time when Accepting (Preparation Time)
+            if (status === 'accepted' && orderType === 'dine-in') {
+                estimatedTime = prompt("Enter Estimated Preparation Time (e.g., '15 mins'):");
+                if (!estimatedTime) return;
+            }
+
+            // For Pre-order (Delivery): Prompt time when Marking Ready (Delivery Time)
+            if (status === 'ready' && orderType === 'pre-order') {
+                estimatedTime = prompt("Enter Estimated Delivery Time (e.g., '10 mins'):");
+                if (!estimatedTime) return;
+            }
+
+            await axios.put(`/api/orders/${orderId}/status`, { status, estimatedTime });
             fetchOrders();
         } catch (error) {
             console.error("Error updating status", error);
@@ -76,18 +90,21 @@ const AdminDashboard = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        <span className="text-xs text-gray-500">
-                                            {new Date(order.createdAt).toLocaleTimeString()}
-                                        </span>
-                                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${order.orderType === 'pre-order' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
-                                            {order.orderType ? order.orderType.toUpperCase() : 'DINE-IN'}
-                                        </span>
-                                        {order.canteen && (
-                                            <span className="text-xs font-bold px-2 py-0.5 rounded border bg-blue-50 text-blue-600 border-blue-200">
-                                                {order.canteen}
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="font-bold text-lg">Order #{order._id.slice(-6)}</h3>
+                                            <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleString()}</p>
+                                            {order.transactionId && (
+                                                <p className="text-xs font-mono bg-gray-100 p-1 rounded mt-1 inline-block">
+                                                    Txn: {order.transactionId}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className={`text-xs font-bold px-2 py-0.5 rounded border ${order.orderType === 'pre-order' ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                                                {order.orderType ? order.orderType.toUpperCase() : 'DINE-IN'}
                                             </span>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -124,43 +141,41 @@ const AdminDashboard = () => {
                                                 <span className="font-mono">{order.transactionId}</span>
                                             </div>
                                         )}
-                                    </div>
+                                        <div className="flex justify-between items-center pt-2">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                                                order.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
+                                                    order.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-green-100 text-green-700'
+                                                }`}>
+                                                {order.status.toUpperCase()}
+                                            </span>
 
-                                    {/* Status */}
-                                    <div className="flex justify-between items-center pt-2">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${order.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                            order.status === 'accepted' ? 'bg-blue-100 text-blue-700' :
-                                                order.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                    'bg-green-100 text-green-700'
-                                            }`}>
-                                            {order.status.toUpperCase()}
-                                        </span>
+                                            {order.status === 'pending' && (
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => updateStatus(order._id, 'accepted', order.orderType)}
+                                                        className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600"
+                                                    >
+                                                        Accept
+                                                    </button>
+                                                    <button
+                                                        onClick={() => updateStatus(order._id, 'rejected', order.orderType)}
+                                                        className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            )}
 
-                                        {order.status === 'pending' && (
-                                            <div className="flex gap-2">
+                                            {order.status === 'accepted' && (
                                                 <button
-                                                    onClick={() => updateStatus(order._id, 'accepted')}
-                                                    className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded hover:bg-green-600"
+                                                    onClick={() => updateStatus(order._id, 'ready', order.orderType)}
+                                                    className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600"
                                                 >
-                                                    Accept
+                                                    Mark Ready
                                                 </button>
-                                                <button
-                                                    onClick={() => updateStatus(order._id, 'rejected')}
-                                                    className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded hover:bg-red-600"
-                                                >
-                                                    Reject
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {order.status === 'accepted' && (
-                                            <button
-                                                onClick={() => updateStatus(order._id, 'ready')}
-                                                className="px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600"
-                                            >
-                                                Mark Ready
-                                            </button>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

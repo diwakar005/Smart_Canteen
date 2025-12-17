@@ -11,11 +11,14 @@ const orderSchema = new mongoose.Schema({
     totalAmount: { type: Number, required: true },
     deliveryLocation: {
         department: { type: String, required: true },
-        building: { type: String, required: true },
-        classroom: { type: String, required: true },
+        building: { type: String },
+        classroom: { type: String },
         contactNo: { type: String }
     },
-    status: { type: String, enum: ['pending', 'preparing', 'ready', 'delivered'], default: 'pending' },
+    orderType: { type: String, enum: ['dine-in', 'pre-order'], default: 'dine-in' },
+    transactionId: { type: String },
+    estimatedTime: { type: String },
+    status: { type: String, enum: ['pending', 'accepted', 'rejected', 'preparing', 'ready', 'delivered'], default: 'pending' },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

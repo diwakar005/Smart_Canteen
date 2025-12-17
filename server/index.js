@@ -61,6 +61,7 @@ app.use(async (req, res, next) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/payment', require('./routes/payment'));
 
 app.get('/', (req, res) => {
     res.send('SmartCanteen API is running');
@@ -70,6 +71,7 @@ if (process.env.NODE_ENV !== 'production') {
     connectDB().then(() => {
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
+            console.log("Server restarted...");
         });
     }).catch(err => {
         console.error("Failed to connect to DB locally:", err);

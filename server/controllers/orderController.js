@@ -47,9 +47,12 @@ exports.getOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, estimatedTime } = req.body;
 
-        const order = await Order.findByIdAndUpdate(id, { status }, { new: true }).populate('user');
+        const updateData = { status };
+        if (estimatedTime) updateData.estimatedTime = estimatedTime;
+
+        const order = await Order.findByIdAndUpdate(id, updateData, { new: true }).populate('user');
 
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
@@ -61,6 +64,12 @@ exports.updateOrderStatus = async (req, res) => {
             message: `Your order for ${order.items[0].name} ${order.items.length > 1 ? `and ${order.items.length - 1} other items` : ''} is now ${status.toUpperCase()}.`,
             read: false
         });
+
+        // Send Email Notification
+        if (order.user.email) {
+            const { sendOrderStatusEmail } = require('../utils/emailService');
+            sendOrderStatusEmail(order.user.email, status, order);
+        }
 
         res.json(order);
     } catch (error) {
