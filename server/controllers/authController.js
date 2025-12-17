@@ -74,6 +74,7 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
     const { identifier, password } = req.body;
+    console.log("Login Attempt:", { identifier, passwordProvided: !!password });
 
     if (!identifier) {
         return res.status(400).json({ message: 'Identifier is required' });
